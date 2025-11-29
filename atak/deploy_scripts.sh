@@ -30,9 +30,10 @@ if [ -z "$DEVICE_IP" ] || [ -z "$DEVICE_PASS" ]; then
     exit 1
 fi
 SCRIPTS_DIR="scripts"
-TARGET_DIR="~/tak-server/scripts"
+TARGET_SCRIPTS_DIR="~/tak-server/scripts"
+TARGET_ROOT="~/tak-server"
 
-echo "=== Deploying TAK Server scripts to device ==="
+echo "=== Deploying TAK Server scripts and config to device ==="
 echo "Device: ${DEVICE_USER}@${DEVICE_IP}"
 echo ""
 
@@ -51,41 +52,58 @@ for script in "${REQUIRED_SCRIPTS[@]}"; do
     fi
 done
 
+# Check if docker-compose.arm.yml exists
+if [ ! -f "docker-compose.arm.yml" ]; then
+    echo "ERROR: docker-compose.arm.yml not found in current directory"
+    exit 1
+fi
+
 # Copy scripts to device
 echo "Step 1: Copying scripts to device..."
 for script in "${REQUIRED_SCRIPTS[@]}"; do
     echo "  - Copying $script..."
-    sshpass -p "$DEVICE_PASS" scp -o StrictHostKeyChecking=no "$SCRIPTS_DIR/$script" "${DEVICE_USER}@${DEVICE_IP}:${TARGET_DIR}/" || {
+    sshpass -p "$DEVICE_PASS" scp -o StrictHostKeyChecking=no "$SCRIPTS_DIR/$script" "${DEVICE_USER}@${DEVICE_IP}:${TARGET_SCRIPTS_DIR}/" || {
         echo "ERROR: Failed to copy $script"
         exit 1
     }
 done
-echo "✓ All scripts copied to ${TARGET_DIR}"
+echo "✓ All scripts copied to ${TARGET_SCRIPTS_DIR}"
+
+# Copy docker-compose.arm.yml to device
+echo ""
+echo "Step 2: Copying docker-compose.arm.yml to device..."
+sshpass -p "$DEVICE_PASS" scp -o StrictHostKeyChecking=no "docker-compose.arm.yml" "${DEVICE_USER}@${DEVICE_IP}:${TARGET_ROOT}/" || {
+    echo "ERROR: Failed to copy docker-compose.arm.yml"
+    exit 1
+}
+echo "✓ docker-compose.arm.yml copied to ${TARGET_ROOT}"
 
 # Make scripts executable
 echo ""
-echo "Step 2: Making scripts executable..."
+echo "Step 3: Making scripts executable..."
 for script in "${REQUIRED_SCRIPTS[@]}"; do
-    sshpass -p "$DEVICE_PASS" ssh -o StrictHostKeyChecking=no "${DEVICE_USER}@${DEVICE_IP}" "chmod +x ${TARGET_DIR}/${script}" || {
+    sshpass -p "$DEVICE_PASS" ssh -o StrictHostKeyChecking=no "${DEVICE_USER}@${DEVICE_IP}" "chmod +x ${TARGET_SCRIPTS_DIR}/${script}" || {
         echo "ERROR: Failed to make $script executable"
         exit 1
     }
 done
 echo "✓ All scripts are now executable"
 
-# Verify scripts on device
+# Verify deployment
 echo ""
-echo "Step 3: Verifying scripts on device..."
+echo "Step 4: Verifying deployment on device..."
 sshpass -p "$DEVICE_PASS" ssh -o StrictHostKeyChecking=no "${DEVICE_USER}@${DEVICE_IP}" << 'REMOTE_EOF'
-cd ~/tak-server/scripts
 echo "Scripts in ~/tak-server/scripts:"
-ls -lh *.sh 2>/dev/null || echo "No .sh files found"
+ls -lh ~/tak-server/scripts/*.sh 2>/dev/null || echo "No .sh files found"
+echo ""
+echo "docker-compose.arm.yml:"
+ls -lh ~/tak-server/docker-compose.arm.yml 2>/dev/null || echo "docker-compose.arm.yml not found"
 REMOTE_EOF
 
 echo ""
 echo "=== Deployment complete ==="
 echo ""
-echo "The modified TAK Server scripts are now installed on the device."
+echo "The modified TAK Server scripts and docker-compose.arm.yml are now installed on the device."
 echo ""
 echo "To run setup:"
 echo "  ssh ${DEVICE_USER}@${DEVICE_IP}"
