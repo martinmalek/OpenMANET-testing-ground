@@ -84,7 +84,7 @@ make -j16 V=sc 2>&1 | tee log.txt
 - `V=sc`: Verbose output with source code context
 - `2>&1 | tee log.txt`: Save build output to `log.txt` for troubleshooting
 
-**Note**: The build process can take 1-3 hours depending on your hardware and selected packages.
+**Note**: The build process can take long time depending on your hardware and selected packages.
 
 ### Step 7: Locate the Built Image
 
@@ -306,12 +306,12 @@ Common files:
 After building and flashing:
 
 1. **Configure Docker storage** - See [Docker README](../docker/README.md)
-2. **Set up GPS** - See [GPS README](../gps/README.md)
-3. **Install TAK Server** - See [ATAK README](../atak/README.md)
+2. **Install TAK Server** - See [ATAK README](../atak/README.md)
+3. **Set up GPS** - See [GPS README](../gps/README.md)
 
 ## Notes
 
-- Build times vary significantly based on hardware (1-3 hours typical)
+- Build times vary significantly based on hardware
 - The build process is CPU and I/O intensive
 - Keep the build log for troubleshooting failed builds
 - Always test images in a safe environment before deploying to production devices

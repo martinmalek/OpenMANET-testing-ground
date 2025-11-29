@@ -46,7 +46,7 @@ On your OpenWrt device, install the required packages:
 
 ```bash
 opkg update
-opkg install git-http git openssh-client bash unzip coreutils-sha1sum
+opkg install git-http git openssh-client bash unzip coreutils-sha1sum htop
 ```
 
 **Packages:**
