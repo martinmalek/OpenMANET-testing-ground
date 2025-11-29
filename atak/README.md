@@ -268,6 +268,7 @@ docker-compose -f docker-compose.arm.yml logs -f tak | grep -i "started\|error"
 - `scripts/setup.sh` - Main installation script
 - `scripts/certDP.sh` - Certificate data package creator
 - `scripts/shareCerts.sh` - Certificate sharing server
+- `docker-compose.arm.yml` - Docker Compose configuration with `network: host` for builds (allows package downloads during build)
 
 ## Memory Configuration
 
