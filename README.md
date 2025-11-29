@@ -2,6 +2,8 @@
 
 This repository contains setup scripts and documentation for configuring OpenMANET gateways running OpenWrt with Docker, GPS, and TAK Server support.
 
+DISCLAIMER! THIS IS CLANKER TERRITORY. USE AT YOUR OWN RISK. NO REFUNDS.
+
 ## Initial Setup
 
 Before running the deployment scripts, set up your device credentials:
