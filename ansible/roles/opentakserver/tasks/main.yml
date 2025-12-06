@@ -9,12 +9,59 @@
   tags:
     - ots
 
+- name: Check if persistent directory exists
+  ansible.builtin.stat:
+    path: "{{ opentakserver_dir }}/persistent"
+  register: persistent_dir_exists
+  tags:
+    - ots
+
+- name: Check if ots-docker repository exists
+  ansible.builtin.stat:
+    path: "{{ opentakserver_dir }}/.git"
+  register: ots_repo_exists
+  tags:
+    - ots
+
+- name: Clone ots-docker repository
+  ansible.builtin.git:
+    repo: https://github.com/milsimdk/ots-docker.git
+    dest: "{{ opentakserver_dir }}"
+    update: yes
+    force: yes
+  when: not persistent_dir_exists.stat.exists
+  tags:
+    - ots
+
+- name: Update ots-docker repository
+  ansible.builtin.git:
+    repo: https://github.com/milsimdk/ots-docker.git
+    dest: "{{ opentakserver_dir }}"
+    update: yes
+    force: yes
+  when: 
+    - persistent_dir_exists.stat.exists
+    - ots_repo_exists.stat.exists
+  tags:
+    - ots
+
+- name: Get timestamp for backup
+  ansible.builtin.shell:
+    cmd: date +%s
+  register: backup_timestamp
+  changed_when: false
+  when: compose_backup | default(true)
+  tags:
+    - ots
+
 - name: Backup existing compose.yaml if it exists
   ansible.builtin.copy:
     src: "{{ opentakserver_dir }}/compose.yaml"
-    dest: "{{ opentakserver_dir }}/compose.yaml.backup.{{ ansible_date_time.epoch }}"
+    dest: "{{ opentakserver_dir }}/compose.yaml.backup.{{ backup_timestamp.stdout }}"
     remote_src: yes
-  when: compose_backup | default(true)
+  when: 
+    - compose_backup | default(true)
+    - backup_timestamp is defined
   ignore_errors: true
   changed_when: false
   tags:
@@ -29,7 +76,7 @@
     - ots
 
 - name: Verify deployment
-  ansible.builtin.command:
+  ansible.builtin.shell:
     cmd: |
       ls -lh {{ opentakserver_dir }}/compose.yaml
       echo ""
@@ -45,4 +92,37 @@
     msg: "{{ ots_verify.stdout_lines }}"
   tags:
     - ots
+
+- name: Start OpenTAKServer services
+  ansible.builtin.shell:
+    cmd: docker compose up -d
+    chdir: "{{ opentakserver_dir }}"
+  register: ots_start
+  tags:
+    - ots
+    - start
+
+- name: Display start output
+  ansible.builtin.debug:
+    msg: "{{ ots_start.stdout_lines }}"
+  tags:
+    - ots
+    - start
+
+- name: Check OpenTAKServer service status
+  ansible.builtin.shell:
+    cmd: docker compose ps
+    chdir: "{{ opentakserver_dir }}"
+  register: ots_status
+  changed_when: false
+  tags:
+    - ots
+    - start
+
+- name: Display service status
+  ansible.builtin.debug:
+    msg: "{{ ots_status.stdout_lines }}"
+  tags:
+    - ots
+    - start
 
