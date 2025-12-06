@@ -1,0 +1,13 @@
+---
+# Playbook to reset GPS role to factory settings
+# This removes the GPS initialization script and disables it at boot
+# Usage: ansible-playbook playbooks/gps-reset.yml
+
+- name: Reset GPS to factory settings
+  hosts: openmanet_devices
+  gather_facts: yes
+  become: no
+  
+  roles:
+    - gps-reset
+
