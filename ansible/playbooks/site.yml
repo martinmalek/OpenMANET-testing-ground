@@ -20,6 +20,12 @@
       tags:
         - gps
 
+    - name: Include gps-reset role
+      include_role:
+        name: gps-reset
+      tags:
+        - gps-reset
+
     - name: Include govtak role
       include_role:
         name: govtak

@@ -1,0 +1,51 @@
+---
+# GPS reset role - removes GPS initialization script and disables it at boot
+
+- name: Disable GPS init script at boot
+  ansible.builtin.file:
+    path: /etc/rc.d/S15gps-init
+    state: absent
+  tags:
+    - gps-reset
+
+- name: Check if GPS init script exists
+  ansible.builtin.stat:
+    path: /etc/init.d/gps-init
+  register: gps_script_exists
+  tags:
+    - gps-reset
+
+- name: Put GPS in standby mode (if script exists)
+  ansible.builtin.command:
+    cmd: /etc/init.d/gps-init off
+  when: gps_script_exists.stat.exists
+  ignore_errors: yes
+  tags:
+    - gps-reset
+
+- name: Put GPS in standby mode via GPIO (set WAKE to HIGH)
+  ansible.builtin.shell: |
+    # Export GPIO pins if not already exported
+    [ -d /sys/class/gpio/gpio{{ gps_gpio_rst }} ] || echo {{ gps_gpio_rst }} > /sys/class/gpio/export 2>/dev/null || true
+    [ -d /sys/class/gpio/gpio{{ gps_gpio_wake }} ] || echo {{ gps_gpio_wake }} > /sys/class/gpio/export 2>/dev/null || true
+    # Set as outputs
+    echo out > /sys/class/gpio/gpio{{ gps_gpio_rst }}/direction 2>/dev/null || true
+    echo out > /sys/class/gpio/gpio{{ gps_gpio_wake }}/direction 2>/dev/null || true
+    # Set RST to LOW (normal operation)
+    echo 0 > /sys/class/gpio/gpio{{ gps_gpio_rst }}/value 2>/dev/null || true
+    # Set WAKE to HIGH (standby mode - GPS off)
+    echo 1 > /sys/class/gpio/gpio{{ gps_gpio_wake }}/value 2>/dev/null || true
+  ignore_errors: yes
+  tags:
+    - gps-reset
+
+- name: Remove GPS init script
+  ansible.builtin.file:
+    path: /etc/init.d/gps-init
+    state: absent
+  tags:
+    - gps-reset
+
+- name: Display reset status
+  ansible.builtin.debug:
+    msg: "GPS role has been reset to factory settings. The GPS init script and boot configuration have been removed. GPS has been put in standby mode."
