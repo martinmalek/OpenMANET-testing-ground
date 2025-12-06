@@ -145,6 +145,7 @@ start() {
     init_gps_gpio
     config_uart
     log "GPS init done; NMEA should be available on $TTY_DEV at ${BAUD} baud"
+    return 0
 }
 
 stop() {
