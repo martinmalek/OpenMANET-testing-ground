@@ -310,6 +310,8 @@ The following ATAK plugins are available for download from APKPure. These can be
 - **WASP**: https://apkpure.com/atak-plugin-wasp/com.atakmap.android.wasp.plugin
 - **VNS**: https://apkpure.com/atak-plugin-vns/com.atakmap.android.vns.plugin
 - **GRG Builder**: https://apkpure.com/atak-plugin-grg-builder/com.atakmap.android.grgbuilder.plugin
+- **VideoWall**: https://apkpure.com/atak-plugin-videowall/com.atakmap.android.gbr.multivideo.plugin
+- **PDF** https://apkpure.com/atak-plugin-pdf/com.atakmap.android.gbr.pdf.plugin
 - **Meshtastic**: https://github.com/meshtastic/ATAK-Plugin/releases/download/1.1.23/ATAK-Plugin-Meshtastic.Plugin-1.1.23-bdcc9b10-5.6.0-civ-release.apk
 
 ### openwrt
