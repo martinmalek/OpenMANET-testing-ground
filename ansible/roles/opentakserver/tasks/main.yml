@@ -116,14 +116,14 @@
   register: ots_start
   tags:
     - ots
-    - start
+    - ots_start
 
 - name: Display start output
   ansible.builtin.debug:
     msg: "{{ ots_start.stdout_lines }}"
   tags:
     - ots
-    - start
+    - ots_start
 
 - name: Check OpenTAKServer service status
   ansible.builtin.shell:
@@ -133,12 +133,12 @@
   changed_when: false
   tags:
     - ots
-    - start
+    - ots_start
 
 - name: Display service status
   ansible.builtin.debug:
     msg: "{{ ots_status.stdout_lines }}"
   tags:
     - ots
-    - start
+    - ots_start
 

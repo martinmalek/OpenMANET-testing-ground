@@ -12,8 +12,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Check if curl is available
   ansible.builtin.command:
@@ -24,8 +23,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Fail if curl is not available
   ansible.builtin.fail:
@@ -34,8 +32,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Check if python3 is available
   ansible.builtin.command:
@@ -46,8 +43,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Get authentication token from OpenTAKServer
   ansible.builtin.uri:
@@ -63,8 +59,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Extract authentication token from response
   ansible.builtin.set_fact:
@@ -72,8 +67,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Display authentication success
   ansible.builtin.debug:
@@ -81,8 +75,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Download package files from GitHub release
   ansible.builtin.get_url:
@@ -95,8 +88,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Verify downloaded files exist
   ansible.builtin.stat:
@@ -106,8 +98,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Create extraction directories for .xapk files
   ansible.builtin.file:
@@ -119,8 +110,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Extract .xapk files to find .apk files inside
   ansible.builtin.unarchive:
@@ -133,8 +123,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Find .apk files in extracted .xapk directories
   ansible.builtin.find:
@@ -148,8 +137,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Build final list of .apk files to upload
   ansible.builtin.set_fact:
@@ -159,8 +147,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Filter out configuration APKs and select main plugin APK from .xapk archives
   ansible.builtin.set_fact:
@@ -182,8 +169,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Upload package files to OpenTAKServer
   ansible.builtin.shell:
@@ -205,8 +191,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Parse upload response
   ansible.builtin.set_fact:
@@ -217,8 +202,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Display upload results
   ansible.builtin.debug:
@@ -236,8 +220,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Clean up temporary files
   ansible.builtin.file:
@@ -247,8 +230,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Clean up extracted .xapk directories
   ansible.builtin.file:
@@ -258,8 +240,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Display summary
   ansible.builtin.debug:
@@ -267,8 +248,7 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
 - name: Fail if any uploads failed
   ansible.builtin.fail:
@@ -277,6 +257,5 @@
   delegate_to: localhost
   run_once: true
   tags:
-    - opentakserver-packages
-    - packages
+    - ots_packages
 
