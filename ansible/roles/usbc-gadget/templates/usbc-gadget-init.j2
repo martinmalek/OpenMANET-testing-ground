@@ -1,0 +1,96 @@
+#!/bin/sh /etc/rc.common
+# USB-C Gadget Mode Init Script
+# This script loads the USB ethernet gadget module and adds usb0 to the mesh network bridge
+
+START=95
+STOP=10
+
+# Define status_service function early so rc.common can detect it
+status_service() {
+	if lsmod | grep -q "^g_ether"; then
+		echo "USB gadget module (g_ether) is loaded"
+	else
+		echo "USB gadget module (g_ether) is NOT loaded"
+		return 1
+	fi
+	
+	if ip link show {{ usbc_gadget_interface }} >/dev/null 2>&1; then
+		echo "Interface {{ usbc_gadget_interface }} exists"
+		if ip link show {{ usbc_gadget_interface }} | grep -q "state UP"; then
+			echo "Interface {{ usbc_gadget_interface }} is UP"
+		else
+			echo "Interface {{ usbc_gadget_interface }} is DOWN"
+		fi
+		
+		# Check if usb0 is in the bridge
+		if brctl show {{ usbc_gadget_mesh_bridge }} 2>/dev/null | grep -q "{{ usbc_gadget_interface }}"; then
+			echo "Interface {{ usbc_gadget_interface }} is in bridge {{ usbc_gadget_mesh_bridge }}"
+		elif bridge link show 2>/dev/null | grep -q "{{ usbc_gadget_interface }}"; then
+			echo "Interface {{ usbc_gadget_interface }} is in bridge {{ usbc_gadget_mesh_bridge }}"
+		else
+			echo "Interface {{ usbc_gadget_interface }} is NOT in bridge {{ usbc_gadget_mesh_bridge }}"
+			return 1
+		fi
+	else
+		echo "Interface {{ usbc_gadget_interface }} does NOT exist"
+		return 1
+	fi
+}
+
+start_service() {
+	# Load g_ether module if not already loaded
+	# Retry loading in case USB subsystem isn't ready yet
+	if ! lsmod | grep -q "^g_ether"; then
+		counter=0
+		while [ $counter -lt 5 ]; do
+			if modprobe g_ether 2>/dev/null; then
+				break
+			fi
+			sleep 2
+			counter=$((counter + 1))
+		done
+	fi
+
+	# Wait for usb0 interface to appear (up to 15 seconds)
+	# USB gadget interface may take time to initialize
+	counter=0
+	while [ $counter -lt 15 ]; do
+		if ip link show {{ usbc_gadget_interface }} >/dev/null 2>&1; then
+			break
+		fi
+		sleep 1
+		counter=$((counter + 1))
+	done
+
+	# If usb0 interface appeared, add it to the mesh bridge
+	if ip link show {{ usbc_gadget_interface }} >/dev/null 2>&1; then
+		# Bring up the interface first
+		ip link set {{ usbc_gadget_interface }} up
+		
+		# Small delay to ensure interface is ready
+		sleep 1
+		
+		# Add usb0 to the mesh network bridge using brctl
+		# This ensures it's added immediately, then netifd will manage it
+		brctl addif {{ usbc_gadget_mesh_bridge }} {{ usbc_gadget_interface }} 2>/dev/null || {
+			# If brctl fails, try using bridge command (newer systems)
+			bridge link set dev {{ usbc_gadget_interface }} master {{ usbc_gadget_mesh_bridge }} 2>/dev/null || true
+		}
+		
+		# Reload network to apply UCI bridge configuration and ensure persistence
+		ubus call network reload
+		
+		# Small delay for network reload to complete
+		sleep 2
+	fi
+}
+
+stop_service() {
+	# Remove usb0 from bridge before bringing it down
+	brctl delif {{ usbc_gadget_mesh_bridge }} {{ usbc_gadget_interface }} 2>/dev/null || true
+	ip link set {{ usbc_gadget_interface }} down 2>/dev/null || true
+}
+
+reload_service() {
+	start_service
+}

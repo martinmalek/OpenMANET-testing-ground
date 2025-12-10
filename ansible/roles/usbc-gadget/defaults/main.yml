@@ -1,0 +1,10 @@
+---
+# Default variables for usbc-gadget role
+
+# USB gadget interface configuration
+# USB-C connected EUDs will be part of the mesh network (br-ahwlan)
+# and receive IPs from the mesh DHCP range (10.41.0.0/16)
+usbc_gadget_interface: usb0
+
+# Mesh network bridge to add usb0 to
+usbc_gadget_mesh_bridge: br-ahwlan

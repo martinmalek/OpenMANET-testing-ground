@@ -1,0 +1,193 @@
+---
+# USB-C Gadget Mode Configuration Role
+# USB-C connected EUDs will be part of the mesh network (br-ahwlan)
+# and receive IPs from the mesh DHCP range (10.41.0.0/16)
+
+# ============================================================================
+# Enable USB-C Gadget Mode in Boot Configuration
+# ============================================================================
+
+- name: Check if dwc2 overlay is already in config.txt
+  ansible.builtin.shell:
+    cmd: grep "^dtoverlay=dwc2" /boot/config.txt || echo "not_found"
+  register: dwc2_check
+  changed_when: false
+  failed_when: false
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+- name: Check if dwc2 overlay already has dr_mode=peripheral
+  ansible.builtin.shell:
+    cmd: grep -q "^dtoverlay=dwc2,dr_mode=peripheral" /boot/config.txt && echo "has_peripheral" || echo "no_peripheral"
+  register: dwc2_peripheral_check
+  changed_when: false
+  failed_when: false
+  when: dwc2_check.stdout != "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+- name: Add dwc2 overlay to config.txt with peripheral mode
+  ansible.builtin.lineinfile:
+    path: /boot/config.txt
+    line: "dtoverlay=dwc2,dr_mode=peripheral"
+    insertafter: "^\\[all\\]"
+    state: present
+  when: dwc2_check.stdout == "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+- name: Update existing dwc2 overlay to include peripheral mode if needed
+  ansible.builtin.replace:
+    path: /boot/config.txt
+    regexp: '^dtoverlay=dwc2$'
+    replace: 'dtoverlay=dwc2,dr_mode=peripheral'
+  when: 
+    - dwc2_check.stdout != "not_found"
+    - dwc2_peripheral_check.stdout == "no_peripheral"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+- name: Check if modules-load is already in cmdline.txt
+  ansible.builtin.shell:
+    cmd: grep -q "modules-load=dwc2,g_ether" /boot/cmdline.txt || echo "not_found"
+  register: modules_load_check
+  changed_when: false
+  failed_when: false
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+- name: Add modules-load to cmdline.txt after rootwait
+  ansible.builtin.replace:
+    path: /boot/cmdline.txt
+    regexp: '(rootwait)'
+    replace: '\1 modules-load=dwc2,g_ether'
+  when: modules_load_check.stdout == "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-boot
+
+# ============================================================================
+# Add usb0 to Mesh Network Bridge (br-ahwlan)
+# ============================================================================
+
+- name: Find bridge device index for mesh bridge
+  ansible.builtin.shell:
+    cmd: |
+      index=0
+      while uci get network.@device[$index].name >/dev/null 2>&1; do
+        if [ "$(uci get network.@device[$index].name)" = "{{ usbc_gadget_mesh_bridge }}" ]; then
+          echo $index
+          exit 0
+        fi
+        index=$((index + 1))
+      done
+      echo "not_found"
+  register: bridge_device_index
+  changed_when: false
+  failed_when: false
+  tags:
+    - usbc-gadget
+    - usbc-gadget-network
+
+- name: Check if usb0 is already in mesh bridge ports
+  ansible.builtin.shell:
+    cmd: |
+      uci show network.@device[{{ bridge_device_index.stdout }}] 2>/dev/null | grep "\.ports" | grep -q "{{ usbc_gadget_interface }}" && echo "found" || echo "not_found"
+  register: usb0_in_bridge
+  changed_when: false
+  failed_when: false
+  when: bridge_device_index.stdout != "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-network
+
+- name: Add usb0 to mesh network bridge via UCI
+  ansible.builtin.shell: |
+    uci add_list network.@device[{{ bridge_device_index.stdout }}].ports='{{ usbc_gadget_interface }}'
+    uci commit network
+  when: 
+    - bridge_device_index.stdout != "not_found"
+    - usb0_in_bridge.stdout == "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-network
+
+- name: Verify usb0 was added to bridge configuration
+  ansible.builtin.shell:
+    cmd: |
+      uci show network.@device[{{ bridge_device_index.stdout }}] | grep "\.ports" | grep -q "{{ usbc_gadget_interface }}" && echo "success" || echo "failed"
+  register: bridge_verify
+  changed_when: false
+  failed_when: false
+  when: 
+    - bridge_device_index.stdout != "not_found"
+    - usb0_in_bridge.stdout == "not_found"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-network
+
+# ============================================================================
+# Deploy USB Gadget Init Script
+# ============================================================================
+
+- name: Deploy usbc-gadget init script
+  ansible.builtin.template:
+    src: usbc-gadget-init.j2
+    dest: /etc/init.d/usbc-gadget
+    mode: '0755'
+    owner: root
+    group: root
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init
+
+- name: Check if usbc-gadget init script is already enabled
+  ansible.builtin.stat:
+    path: /etc/rc.d/S*usbc-gadget
+  register: usbc_gadget_enabled
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init
+
+- name: Enable usbc-gadget init script to run at boot
+  ansible.builtin.command:
+    cmd: /etc/init.d/usbc-gadget enable
+  when: usbc_gadget_enabled.stat.exists == false
+  register: usbc_gadget_enable_result
+  changed_when: usbc_gadget_enable_result.rc == 0
+  failed_when: usbc_gadget_enable_result.rc != 0
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init
+
+- name: Start usbc-gadget service
+  ansible.builtin.command:
+    cmd: /etc/init.d/usbc-gadget start
+  register: usbc_gadget_start_result
+  changed_when: usbc_gadget_start_result.rc == 0
+  failed_when: false
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init
+
+- name: Check usbc-gadget service status
+  ansible.builtin.shell: |
+    . /etc/init.d/usbc-gadget && status_service
+  register: usbc_gadget_status
+  changed_when: false
+  failed_when: false
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init
+
+- name: Display usbc-gadget status
+  ansible.builtin.debug:
+    msg: "{{ usbc_gadget_status.stdout_lines }}"
+  tags:
+    - usbc-gadget
+    - usbc-gadget-init

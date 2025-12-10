@@ -47,6 +47,12 @@
         - openwrt
         - openwrt-flash
 
+    - name: Include usbc-gadget role
+      include_role:
+        name: usbc-gadget
+      tags:
+        - usbc-gadget
+
 - name: Deploy OpenWrt Docker Diffconfig to Build Server
   hosts: localhost
   gather_facts: no
