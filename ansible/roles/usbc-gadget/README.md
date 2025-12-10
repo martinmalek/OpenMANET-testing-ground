@@ -114,3 +114,42 @@ If EUD can't reach mesh nodes:
 1. Verify bridge membership: `bridge link show | grep usb0`
 2. Check mesh network: `batctl o`
 3. Verify firewall: `iptables -L -n -v`
+
+### Android Device Issues
+
+If Android devices don't automatically enable USB network interface:
+
+**Known Limitation:** Android is primarily designed to SHARE internet via USB (USB tethering), not to RECEIVE internet from USB gadgets. Many Android devices don't automatically enable the USB network interface when connected to a USB gadget.
+
+**Possible Solutions:**
+
+1. **Check USB Connection Mode:**
+   - Settings → Developer options → Default USB configuration
+   - Try: "File Transfer (MTP)", "PTP", or "No data transfer"
+   - Some devices need specific modes to recognize network adapters
+
+2. **Check Network Settings:**
+   - Settings → Network & internet
+   - Look for "Ethernet" or "USB Ethernet" option
+   - Some phones show it under "More connection settings"
+
+3. **Try Different USB Protocols:**
+   - The role attempts to use CDC-ECM first (better Linux/Android compatibility)
+   - Falls back to RNDIS if needed
+   - Both protocols are supported by `g_ether`
+
+4. **Root Access (Advanced):**
+   - If device is rooted, you can manually enable the interface:
+     ```bash
+     adb shell
+     su
+     setprop sys.usb.config rndis,adb
+     # or
+     svc usb setFunctions rndis
+     ```
+
+5. **Alternative: Use USB-A Port:**
+   - Some devices work better with USB-A to USB-C adapters
+   - Connect phone to Pi's USB-A port instead of USB-C port
+
+**Note:** Not all Android devices support receiving network via USB. This is a device/OS limitation, not a Pi configuration issue.

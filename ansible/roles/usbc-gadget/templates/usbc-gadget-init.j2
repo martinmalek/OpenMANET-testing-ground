@@ -40,9 +40,16 @@ status_service() {
 start_service() {
 	# Load g_ether module if not already loaded
 	# Retry loading in case USB subsystem isn't ready yet
+	# Try CDC-ECM first (better Linux/Android compatibility), fallback to default (RNDIS)
 	if ! lsmod | grep -q "^g_ether"; then
 		counter=0
 		while [ $counter -lt 5 ]; do
+			# Try loading with use_eem=0 to prefer CDC-ECM over RNDIS
+			# This may work better with some Android devices
+			if modprobe g_ether use_eem=0 2>/dev/null; then
+				break
+			fi
+			# Fallback to default (RNDIS) if CDC-ECM fails
 			if modprobe g_ether 2>/dev/null; then
 				break
 			fi
